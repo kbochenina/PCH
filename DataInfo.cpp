@@ -845,7 +845,7 @@ void DataInfo::InitWorkflows(string f){
 		
 	     //double deadline = GetT(), tstart = 0;
          Workflow w(workflows.size() + i+1, pacs,connectMatrix, deadline, transfer, tstart);
-		 cout << "Tstart:" << tstart << " Deadline " << deadline << endl;
+		   cout << "Tstart:" << tstart << " Deadline " << deadline << endl;
          workflows.push_back(w);
          pacs.clear();
          connectMatrix.clear();
@@ -1296,6 +1296,16 @@ double DataInfo::GetDeadline(){
      return maxDeadline;
 }
 
+double DataInfo::GetTStart(){
+     double minTStart = numeric_limits<double>::infinity(); 
+     for (size_t i = 0; i < workflows.size(); i++) {
+         double t = workflows[i].GetStartTime() ;
+         if (t > minTStart) 
+             minTStart = t; 
+     }
+     return minTStart;
+}
+
 // remove some numbers from priorities
 void DataInfo::RemoveFromPriorities(const vector<int>& toRemove){
    for (const auto& val : toRemove){
@@ -1315,4 +1325,107 @@ double DataInfo::GetBandwidth(const int& from, const int& to) const {
       std::system("pause");
       exit(EXIT_FAILURE);
    }
+}
+
+void DataInfo::MergeWorkflows(){
+    unsigned int fullPCount = GetPackagesCount(),
+        newPCount = fullPCount + 2;
+    vector<Package> pacs;
+    vector <vector <int>> connectMatrix;
+    vector <vector<double>> transfer;
+    transfer.resize(newPCount);
+    connectMatrix.resize(newPCount);
+    for (int j = 0; j < newPCount; j++){
+        transfer[j].resize(newPCount);
+        connectMatrix[j].resize(newPCount);
+        for (int k = 0; k < newPCount; k++){
+            transfer[j][k] = 0.0;
+            connectMatrix[j][k] = 0.0;
+        }
+    }
+    double tstart = GetTStart(), deadline = GetDeadline();
+    // add false start package to package list. Its number is equal fullPackagesCount. Other packages are numbered from 0
+    vector <int> types, cCount;
+    map <pair <int,int>, double> execTime;
+    for (unsigned int i = 0; i < resources.size(); i++){
+        types.push_back(i+1);
+        execTime.insert(make_pair(make_pair(types[i], 1), 0));
+    }
+    cCount.push_back(1);
+    Package p(fullPCount, types, cCount, execTime, 0, 0);
+    pacs.push_back(p);
+    unsigned int accumPCount = 0;
+    // copy all packages to new workflow
+    for (size_t i = 0; i < workflows.size(); i++){
+        auto wfPackages = workflows[i].GetPackages();
+        if (i){
+            for (auto& p: wfPackages){
+                p.SetUID(p.GetUID() + accumPCount);
+            }
+        }
+        accumPCount += wfPackages.size();
+        pacs.insert(pacs.end(), wfPackages.begin(), wfPackages.end());
+    }
+    // add false last package
+    p.SetUID(fullPCount + 1);
+    pacs.push_back(p);
+
+    accumPCount = 0;
+    // create transfer and connectivity matrices
+    for (size_t i = 0; i < workflows.size(); i++){
+        unsigned wfPackageCount = workflows[i].GetPackageCount();
+        for (size_t j = 0; j < wfPackageCount; j++){
+            unsigned rowNumber = accumPCount + j;
+            // if package has no parents, its parent is false start package (its index = fullPCount)
+            if (workflows[i].IsPackageInit(j)){
+                connectMatrix[fullPCount][j] = 1;
+            }
+            // if package has no children, its child is false last package (its index = fullPCount + 1)
+            else if (workflows[i].IsPackageLast(j)){
+                connectMatrix[rowNumber][fullPCount + 1] = 1;
+            }
+            
+            for (size_t k = 0; k < wfPackageCount; k++){
+                connectMatrix[rowNumber][accumPCount + k] = workflows[i].GetMatrixValue(j, k);
+                transfer[rowNumber][accumPCount + k] = workflows[i].GetTransfer(j, k);
+            }
+        }
+        accumPCount += wfPackageCount;
+    }
+
+    Workflow w(workflows.size() + 1, pacs, connectMatrix, deadline, transfer, tstart);
+    workflows.push_back(w);
+    for (size_t i = 0; i < workflows.size(); i++){
+        PrintConnectivityMatrixToFile(i);
+        PrintTransferMatrixToFile(i);
+    }
+    cout << endl;
+}
+
+void DataInfo::DeleteLastWorkflow(){
+    // check iterator
+    workflows.erase(workflows.end());
+}
+
+ // store connectivity matrix to file
+void DataInfo::PrintConnectivityMatrixToFile(unsigned wfNum){
+    Workflow &w = workflows[wfNum];
+    ofstream file("connectivity_" + to_string(wfNum));
+    for (size_t i = 0; i < w.GetPackageCount(); i++){
+        for (size_t j = 0; j < w.GetPackageCount(); j++)
+            file << w.GetMatrixValue(i, j) << " ";
+        file << endl;
+    }
+    file.close();
+}
+// store transfer matrix to file
+void DataInfo::PrintTransferMatrixToFile(unsigned wfNum){
+    Workflow &w = workflows[wfNum];
+    ofstream file("transfer_" + to_string(wfNum));
+    for (size_t i = 0; i < w.GetPackageCount(); i++){
+        for (size_t j = 0; j < w.GetPackageCount(); j++)
+            file << w.GetTransfer(i, j) << " ";
+        file << endl;
+    }
+    file.close();
 }

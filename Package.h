@@ -5,8 +5,8 @@ typedef map<pair<int,int>, double> times;
 #pragma once
 class Package
 {
-	// package local uid - from 1
-	int uid;
+	// package local uid - from 0
+	unsigned int uid;
 	// supported resource types
 	vector <int> resTypes;
 	// supported core counts
@@ -33,6 +33,8 @@ public:
 	double GetAvgExecTime() const;
 	// return maximum exectime of package pNum (on 1 processor)
 	double GetMaxExecTime() const;
+   void SetUID(unsigned int u) {uid = u;}
+   unsigned int GetUID() {return uid;}
 	~Package(void);
 };
 

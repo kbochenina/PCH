@@ -96,12 +96,21 @@ public:
 	void RemoveFromPriorities(const vector<int>& toRemove);
 	const double GetDeadline(int wfNum);
 	double GetDeadline();
+   double GetTStart();
 	int GetPrioritiesSize() {return priorities.size();}
     double GetBandwidth(const int& from, const int& to) const;
    // get average transfer time from globalPackage to all its childs
     double GetAvgTransferFrom(const int& globalPackage) const;
 	// get maximum exec time of last task of wfNum (for fine calculating)
 	double GetMaxLastTasksExecTime(int wfNum) const;
+   // merge all workflows into one and add it to the end of vector of workflows
+   void MergeWorkflows();
+   // delete last workflow from the vector of workflows
+   void DeleteLastWorkflow();
+   // store connectivity matrix to file
+   void PrintConnectivityMatrixToFile(unsigned wfNum);
+   // store transfer matrix to file
+   void PrintTransferMatrixToFile(unsigned wfNum);
 	~DataInfo(void);
 };
 

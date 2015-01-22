@@ -65,13 +65,14 @@ public:
    double GetTransfer(const int &in, const int &out) const;
    void SetTransfer(vector<vector<double>> t)  ;
    int GetLastPackagesCount() const;
-   bool IsParent(int parent, int child) const { return matrix[parent][child] == 1? true : false;}
+   bool IsParent(int parent, int child) const {return matrix[parent][child] == 1? true : false;}
    // returns start time of workflow
    double GetStartTime() const {return tstart;}
    // get maximum exec time of package
    double GetMaximumExecTime(const int& pNum) const;
    void SetDeadline(double deadline) {this->deadline = deadline;}
    void SetTStart(double tstart){this->tstart = tstart;}
+   vector<Package> GetPackages() const {return packages;}
     Workflow(){ uid = 0; }
 	~Workflow(void);
 };
