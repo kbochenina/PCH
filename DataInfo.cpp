@@ -1300,7 +1300,7 @@ double DataInfo::GetTStart(){
      double minTStart = numeric_limits<double>::infinity(); 
      for (size_t i = 0; i < workflows.size(); i++) {
          double t = workflows[i].GetStartTime() ;
-         if (t > minTStart) 
+         if (t < minTStart) 
              minTStart = t; 
      }
      return minTStart;
@@ -1395,16 +1395,16 @@ void DataInfo::MergeWorkflows(){
 
     Workflow w(workflows.size() + 1, pacs, connectMatrix, deadline, transfer, tstart);
     workflows.push_back(w);
-    for (size_t i = 0; i < workflows.size(); i++){
+    /*for (size_t i = 0; i < workflows.size(); i++){
         PrintConnectivityMatrixToFile(i);
         PrintTransferMatrixToFile(i);
     }
-    cout << endl;
+    cout << endl;*/
 }
 
 void DataInfo::DeleteLastWorkflow(){
     // check iterator
-    workflows.erase(workflows.end());
+    workflows.erase(workflows.end() - 1);
 }
 
  // store connectivity matrix to file
