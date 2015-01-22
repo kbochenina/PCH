@@ -189,102 +189,96 @@ void Scheduler::StagedScheme(vector<int>& order){
 }
 
 void Scheduler::GetSchedule(int scheduleVariant){
-   Schedule storedSched;
-   data.SetInitBusyIntervals();
-   fullSchedule.clear();
-   int bestStage = 0;
-   ofstream resTime("time.txt", ios::app);
-   ofstream full("fullmetrics.txt", ios::app);
-   double t = 0, end = 0, stagedTime = 0;
-   switch (scheduleVariant)
-   {
-      case 1:
-         resTime << "Staged scheme: " << endl;
-         //data.SetWfPriorities();
-         maxEff = 0;
-         for (int i = 0; i < data.GetWFCount(); i++) {
-            scheduledWFs.clear();
-            t = clock();
-            double eff = StagedScheme(i);
-            stagedTime = (clock() - t)/1000.0;
-            end += stagedTime;
-            resTime << "Time of executing stage " << i+1 << " " << stagedTime << endl;
-            if (eff > maxEff){
-               maxEff = eff;
-               storedSched = fullSchedule;
-               bestStage= i;
+    data.SetInitBusyIntervals();
+    fullSchedule.clear();
+    ofstream resTime("time.txt", ios::app);
+    ofstream full("fullmetrics.txt", ios::app);
+
+    double t = 0, end = 0, stagedTime = 0;
+    string schemeName;
+
+     // for staged scheme (case 1)
+    Schedule storedSched;
+    int bestStage = 0;
+
+    t = clock();
+
+    switch (scheduleVariant){
+        case 1:
+            schemeName = "staged scheme";
+            maxEff = 0;
+            for (int i = 0; i < data.GetWFCount(); i++) {
+                scheduledWFs.clear();
+                t = clock();
+                double eff = StagedScheme(i);
+                stagedTime = (clock() - t)/1000.0;
+                end += stagedTime;
+                resTime << "Time of executing stage " << i+1 << " " << stagedTime << endl;
+                if (eff > maxEff){
+                    maxEff = eff;
+                    storedSched = fullSchedule;
+                    bestStage= i;
+                }
             }
-         }
-         cout << "Time of executing staged scheme " << end << endl;
-         resTime << "Time of executing staged scheme " << end << endl;
-         cout << "Average time of stage " << end/data.GetWFCount() << endl;
-         resTime << "Average time of stage " << end/data.GetWFCount() << endl;
-         fullSchedule = storedSched;
-         xmlWriter->CreateXML(fullSchedule);
-         cout << "Best stage: " << bestStage << endl;
-         break;
-      case 2:
-      {
-         t = clock();
-         EfficiencyOrdered();
-         end = (clock() - t)/1000.0;
-         cout << "Time of executing efficiency ordered scheme " << end << endl;
-         resTime << "Time of executing efficiency ordered scheme " << end << endl;
-         full << "Time of executing efficiency ordered scheme " << end << endl;
-         full << "Efficiency ordered scheme eff: " << maxEff << endl;
-         break;
-      }
-      case 3: 
-         // simple sched
-         t = clock();
-         SimpleSched();
-         end = (clock() - t)/1000.0;
-         cout << "Time of executing simple scheduling algorithm " << end << endl;
-         resTime << "Time of executing simple scheduling algorithm " << end << endl;
-         full << "Time of executing simple scheduling algorithm " << end << endl;
-         full << "Sumple sched eff: " << maxEff << endl;
-         break;
-      case 4:
-         // reserved_ordered sched
-         //data.SetWfPriorities();
-         t = clock();
-         OrderedScheme(1);
-         end = (clock() - t)/1000.0;
-         cout << "Time of executing reserved ordered scheme " << end << endl;
-         resTime << "Time of executing reserved ordered scheme " << end << endl;
-         full << "Time of executing reserved ordered scheme " << end << endl;
-         full << "Reserved scheme eff: " << maxEff << endl;
-         break;
-	  case 5:
-		  // clustered scheme
-		 t = clock();
-         Clustered();
-         end = (clock() - t)/1000.0;
-         cout << "Time of executing clustered scheme " << end << endl;
-         resTime << "Time of executing clustered scheme " << end << endl;
-         full << "Time of executing clustered scheme " << end << endl;
-         full << "clustered eff: " << maxEff << endl;
-         break;
-      default:
-         break;
-      }
-   resTime.close();
-   full.close();
+            fullSchedule = storedSched;
+            break;
+        case 2:
+            schemeName = "efficiency ordered scheme";
+            EfficiencyOrdered();
+            break;
+        case 3:
+            schemeName = "MDW-T";
+            SimpleSched(schemeName);
+            break;
+        case 4:
+            schemeName = "MDW-W[RT]";
+            OrderedScheme(1);
+            break;
+        case 5:
+            schemeName = "MDW-C";
+            SimpleSched(schemeName);
+            break;
+        case 6:
+            schemeName = "PCH_MERGE";
+            SimpleSched(schemeName);
+            break;
+        case 7:
+            schemeName = "PCH_RR";
+            SimpleSched(schemeName);
+            break;
+        default:
+            cout << "Scheduler::GetSchedule() fatal error. Unknown schedule variant" << endl;
+            system("pause");
+            exit(110);
+    }
+
+    end = (clock() - t)/1000.0;
+    cout << "Time of executing " << schemeName << " " << end << endl;
+    resTime << "Time of executing " << schemeName << " "  << end << endl;
+    full << "Time of executing " << schemeName << " "  << end << endl;
+    full << schemeName << " eff: " << maxEff << endl;
+    resTime.close();
+    full.close();
 }
 
-void Scheduler::Clustered()
-{
-	 unique_ptr <SchedulingMethod> method = SchedulingFactory::GetMethod(data, methodsSet[0], -1);
-	 // get full schedule
-	 maxEff = method->GetWFSchedule(fullSchedule);
-	 maxEff = maxEff/maxPossible;
-	 cout << "Efficiency: " << maxEff << endl;
-     //data.FixBusyIntervals();
-     xmlWriter->SetXMLBaseName("Clustered_");
-     // write result to XML
-     xmlWriter->CreateXML(fullSchedule);
-     data.SetInitBusyIntervals();
-}
+
+
+void Scheduler::SimpleSched(string schemeName){
+   // third parameter = -1 means that we will find the schedule for whole big WF
+   unique_ptr <SchedulingMethod> method = SchedulingFactory::GetMethod(data, methodsSet[0], -1);
+   // get full schedule
+   maxEff = method->GetWFSchedule(fullSchedule);
+   maxEff = maxEff/maxPossible;
+   cout << "Efficiency: " << maxEff << endl;
+   //data.FixBusyIntervals();
+   xmlWriter->SetXMLBaseName(schemeName + "_");
+   // write result to XML
+   xmlWriter->CreateXML(fullSchedule);
+   data.SetInitBusyIntervals();
+ }
+
+
+
 
 void Scheduler::EfficiencyOrdered(){
    try{
@@ -449,19 +443,6 @@ void Scheduler::OrderedScheme(int criteriaNumber){
    }
 }
 
-void Scheduler::SimpleSched(){
-   // third parameter = -1 means that we will find the schedule for whole big WF
-   unique_ptr <SchedulingMethod> method = SchedulingFactory::GetMethod(data, methodsSet[0], -1);
-   // get full schedule
-   maxEff = method->GetWFSchedule(fullSchedule);
-   maxEff = maxEff/maxPossible;
-   cout << "Efficiency: " << maxEff << endl;
-   //data.FixBusyIntervals();
-   xmlWriter->SetXMLBaseName("Simple_");
-   // write result to XML
-   xmlWriter->CreateXML(fullSchedule);
-   data.SetInitBusyIntervals();
- }
 
 // add to file info about schedule
 void Scheduler::PrintOneWFSched(ofstream & res, Schedule & sched, int wfNum){

@@ -31,13 +31,11 @@ class Scheduler
 	// staged scheme with known WF order
 	void StagedScheme(vector <int>& wfOrder);
 	// scheduling like one big WF
-	void SimpleSched();
+	void SimpleSched(string schemeName);
 	// scheduling ordered due to prioretization criteria
 	void OrderedScheme(int criteriaNumber);
 	// efficiency ordered staged scheme
 	void EfficiencyOrdered();
-	// clustered scheme
-	void Clustered();
 	// add to file info about schedule
 	void PrintOneWFSched(ofstream & out, Schedule & sched, int wfNum);
 	// add to res file additional schedule information

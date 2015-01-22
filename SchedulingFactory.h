@@ -1,6 +1,7 @@
 #include "SchedulingMethod.h"
 #include "Greedy.h"
 #include "Clustered.h"
+#include "PCH.h"
 #include <memory>
 #pragma once
 class SchedulingFactory

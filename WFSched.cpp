@@ -12,8 +12,8 @@
 
 using namespace std;
 
-enum SchedulingTypes { ONLY_BELLMAN = 1, ONLY_GREEDY = 2, CLUST = 3, PCH = 4 };
-enum SchedulingSchemes { STAGED = 1, EFF_ORDERED = 2, SIMPLE = 3, RESERVED_ORDERED = 4, CLUSTERED = 5, PCH_MERGE = 4, PCH_RR = 5};
+enum SchedulingTypes { ONLY_BELLMAN = 1, ONLY_GREEDY = 2, CLUST = 3, PCH_M = 4, PCH_R = 5 };
+enum SchedulingSchemes { STAGED = 1, EFF_ORDERED = 2, SIMPLE = 3, RESERVED_ORDERED = 4, CLUSTERED = 5, PCH_MERGE = 6, PCH_RR = 7};
 
 
 int _tmain(int argc, wchar_t**argv)
@@ -29,7 +29,7 @@ int _tmain(int argc, wchar_t**argv)
        exit (100);
    }
    minLInit = _wtoi(argv[1]);
-   koeff = _wtoi(argv[2]);
+   koeff = _wtof(argv[2]);
 	periodsCount = _wtoi(argv[3]);
    experCount = _wtoi(argv[4]);
 	
@@ -73,7 +73,7 @@ int _tmain(int argc, wchar_t**argv)
 		    sched.TestSchedule();
 		    cout << "***************************************************" << endl;
            // PCH + merge-based
-          sched.SetSchedulingStrategy(PCH);
+          sched.SetSchedulingStrategy(PCH_M);
 		    sched.GetSchedule(PCH_MERGE);
 		    sched.GetMetrics("pch_merge.txt", "PCH_MERGE", metricsFileName);
 		    sched.TestSchedule();
