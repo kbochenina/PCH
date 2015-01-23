@@ -1429,3 +1429,15 @@ void DataInfo::PrintTransferMatrixToFile(unsigned wfNum){
     }
     file.close();
 }
+
+// get maximum bandwidth
+double DataInfo::GetMaxBandwidth(){
+    double maxBandwidth = 0.0;
+    for (auto &row : bandwidth){
+        for (auto &col : row){
+            if (col > maxBandwidth)
+                maxBandwidth = col;
+        }
+    }
+    return maxBandwidth;
+}

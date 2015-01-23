@@ -47,6 +47,8 @@ public:
 	bool IsPackageLast(int pNum) const;
 	// return average exectime of package pNume
 	double GetAvgExecTime(int pNum) const;
+   // return minimum exec time
+   double GetMinExecTime(int pNum) const;
 	// return computational amount of package pNum
 	double GetAmount(const int & pNum) const { return packages[pNum].GetAmount(); }
 	// return all successors of package pNum
@@ -73,6 +75,7 @@ public:
    void SetDeadline(double deadline) {this->deadline = deadline;}
    void SetTStart(double tstart){this->tstart = tstart;}
    vector<Package> GetPackages() const {return packages;}
+   int GetUID() const { return uid; }
     Workflow(){ uid = 0; }
 	~Workflow(void);
 };

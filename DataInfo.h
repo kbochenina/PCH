@@ -111,6 +111,8 @@ public:
    void PrintConnectivityMatrixToFile(unsigned wfNum);
    // store transfer matrix to file
    void PrintTransferMatrixToFile(unsigned wfNum);
+   // get maximum bandwidth
+   double GetMaxBandwidth();
 	~DataInfo(void);
 };
 

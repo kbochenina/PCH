@@ -33,8 +33,10 @@ public:
 	double GetAvgExecTime() const;
 	// return maximum exectime of package pNum (on 1 processor)
 	double GetMaxExecTime() const;
-   void SetUID(unsigned int u) {uid = u;}
-   unsigned int GetUID() {return uid;}
+   // return maximum exectime of package pNum (on 1 processor)
+	double GetMinExecTime() const;
+   void SetUID (unsigned int u) {uid = u;}
+   unsigned int GetUID() const{return uid;}
 	~Package(void);
 };
 

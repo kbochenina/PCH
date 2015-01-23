@@ -9,34 +9,40 @@ PCH::PCH(DataInfo &d, int uid) : SchedulingMethod(d,uid)
 
 // workflows are numbered from 0
 double PCH::GetWFSchedule(Schedule &out){
-     if (uid == 4){
-        // PCH_MERGE
-        // MergeWorkflows creates new workflow from existing
-        // and adds it to the end of vector of workflows
-        data.MergeWorkflows();
-        // ordering vector will contain one, last workflow
-        order.push_back(data.GetWFCount()-1);
-    }
-    else {
+    // order of workflows in round-robin
+    vector <unsigned int> order;
+     if (uid == 5){
+        // PCH_RR
         // get order in accordance with starting time
         //SortTStart(order);
     }
+   
     // current workflow to be scheduled
-    unsigned int currentWf = order[0];
+//    unsigned int currentWf = order[0];
     InitUnscheduledTasks();
 
-    if (uid == 4){
-        // delete merged workflow from data structure
-        data.DeleteLastWorkflow();
-    }
     return 0.0;
 }
 
 void PCH::InitUnscheduledTasks(){
-    for (auto& wfNum: order){
+    for (auto& wf: data.Workflows()){
         unschedTasksInfo wfTasksInfo;
-        wfTasksInfo.wfIndex = wfNum;
+        wfTasksInfo.wfIndex = wf.GetUID();
+        taskInfo tasks;
+        for (size_t i = 0; i < wf.GetPackageCount(); i++){
+            taskAttributes task;
+            task.weight = wf.GetMinExecTime(i);
+            vector<int> children;
+            wf.GetOutput(i, children);
+            for (auto& child : children){
+                double transfer = wf.GetTransfer(i, child);
+                double bestBandwidth = data.GetMaxBandwidth();
+                task.commCost.push_back(make_pair(child, transfer / bestBandwidth));
+            }
 
+            tasks.push_back(make_pair(i, task));
+        }
+        cout << endl;
     }
 }
 

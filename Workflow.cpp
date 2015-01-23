@@ -134,6 +134,11 @@ double Workflow::GetAvgExecTime(int pNum) const{
    return packages[pNum].GetAvgExecTime();
 }
 
+// return minimum exectime of package pNume
+double Workflow::GetMinExecTime(int pNum) const{
+   return packages[pNum].GetMinExecTime();
+}
+
 double Workflow::GetMaximumExecTime(const int& pNum) const{
 	return packages[pNum].GetMaxExecTime();
 }

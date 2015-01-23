@@ -44,6 +44,20 @@ double Package::GetMaxExecTime() const{
 	return max;
 }
 
+// return maximum exectime of package pNum (on 1 processor)
+double Package::GetMinExecTime() const{
+	double min = numeric_limits<double>::infinity();
+	for (auto it = execTimes.begin(); it!= execTimes.end(); it++){
+		// for 1 core
+		if (it->first.second == 1){
+			if (it->second < min)
+				min = it->second;
+		}
+	}
+	return min;
+}
+
+
 // copy constructor
 Package::Package (const Package & p){
 	uid = p.uid;

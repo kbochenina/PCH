@@ -3,12 +3,13 @@
 
 typedef struct taskAttributes{
     double weight;
-    double commCost;
+    // vector of (childUid, commTime) for best bandwidth
+    vector <pair<int,double>> commCost;
     double priority;
     double est;
 };
 
-// vector of (taskIndex, taskAttributes)
+// vector of (taskUID, taskAttributes)
 typedef vector <pair<int, taskAttributes>> taskInfo;
 
 typedef struct unschedTasksInfo{
@@ -24,8 +25,6 @@ private:
     int uid; 
     // information about unscheduled tasks
     vector <unschedTasksInfo> unsched;
-    // order of workflows in round-robin
-    vector <unsigned int> order;
     // add all tasks from all workflows to unscheduled
     void InitUnscheduledTasks();
 public:
