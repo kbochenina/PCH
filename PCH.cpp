@@ -5,6 +5,7 @@
 PCH::PCH(DataInfo &d, int uid) : SchedulingMethod(d,uid)
 {
     this->uid = uid;
+    unschedCount = 0;
 }
 
 // workflows are numbered from 0
@@ -18,8 +19,23 @@ double PCH::GetWFSchedule(Schedule &out){
     }
    
     // current workflow to be scheduled
-//    unsigned int currentWf = order[0];
+    unsigned currentWf = 0;
     InitUnscheduledTasks();
+    while (unschedCount != 0){
+        unsigned firstTask = 0;
+        // PCH_MERGE
+        if (uid == 4){
+            FindCurrentWorkflow(currentWf, firstTask);
+        }
+        // PCH_RR
+        else {
+
+        }
+        vector <unsigned> cluster;
+        cluster.push_back(firstTask);
+        FindCluster(currentWf, firstTask, cluster);
+        unschedCount -= cluster.size();
+    }
 
     return 0.0;
 }
@@ -42,9 +58,65 @@ void PCH::InitUnscheduledTasks(){
 		SetPriorities(tasks, wf);
 		SetESTs(tasks, wf);
 		unsched[wf.GetUID()] = tasks;
+      unschedCount += wf.GetPackageCount();
     }
 }
 
+// for PCH_MERGE - find workflow which cluster will be formed next, and first task of the cluster
+void PCH::FindCurrentWorkflow(unsigned &wfUID, unsigned& taskIndex){
+    double highestPriority = 0.0;
+    // we should find an index of workflow having the task with highest priority
+    for (auto& wf: unsched){
+        for (auto& task: wf.second){
+            double &priority = task.second.priority;
+            if (priority > highestPriority){
+                highestPriority = priority;
+                wfUID = wf.first;
+                taskIndex = task.first;
+            }
+        }
+    }
+}
+
+// find cluster
+void PCH::FindCluster(unsigned currentWf, unsigned firstTask, vector<unsigned>& cluster){
+    unsigned currentTask = firstTask;
+    const Workflow& wf = data.Workflows(currentWf);
+    taskInfo& tasks = unsched[wf.GetUID()];
+    do {
+        vector<int> children;
+        wf.GetOutput(currentTask, children);
+        double highestPriority = 0.0;
+        unsigned bestChildNum = 0;
+        bool isAnyChildWithAllParentsScheduled = false;
+        // find task with highest priority and all parents scheduled
+        for (auto& child : children){
+            vector<int> parents;
+            wf.GetInput(child, parents);
+            bool allParentsScheduled = true;
+            for (auto& parent: parents){
+                if (tasks.count(parent) != 0){
+                    allParentsScheduled = false;
+                    break;
+                }
+            }
+            if (allParentsScheduled){
+                isAnyChildWithAllParentsScheduled = false;
+                double& priority = tasks[child].priority;
+                if (priority > highestPriority){
+                    bestChildNum = child;
+                    highestPriority = priority;
+                }
+            }
+        }
+        // if all children have unscheduled parents, it is the end of the current cluster
+        if (!isAnyChildWithAllParentsScheduled)
+            return;
+        cluster.push_back(bestChildNum);
+        currentTask = bestChildNum;
+     } while (!wf.IsPackageLast(currentTask));
+
+}
 
 // setting the priorities for unscheduled tasks of current workflow
 void PCH::SetPriorities(taskInfo& tasks, const Workflow& wf){
