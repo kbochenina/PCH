@@ -4,18 +4,14 @@
 typedef struct taskAttributes{
     double weight;
     // vector of (childUid, commTime) for best bandwidth
-    vector <pair<int,double>> commCost;
+    map<int,double> commCost;
     double priority;
     double est;
 };
 
-// vector of (taskUID, taskAttributes)
-typedef vector <pair<int, taskAttributes>> taskInfo;
+// map of (taskUID, taskAttributes)
+typedef map<int, taskAttributes> taskInfo;
 
-typedef struct unschedTasksInfo{
-    unsigned int wfIndex;
-    taskInfo tasks;
-};
 
 class PCH :
     public SchedulingMethod
@@ -24,9 +20,13 @@ private:
     // 4 - PCH_MERGE, 5 - PCH_RR
     int uid; 
     // information about unscheduled tasks
-    vector <unschedTasksInfo> unsched;
+    map <unsigned int, taskInfo> unsched;
     // add all tasks from all workflows to unscheduled
     void InitUnscheduledTasks();
+	// setting the priorities for unscheduled tasks of current workflow
+	void SetPriorities(taskInfo& tasks, const Workflow& wf); 
+	// setting the ESTs for unscheduled tasks of current workflow
+	void SetESTs(taskInfo& tasks, const Workflow& wf);
 public:
     PCH(DataInfo &d, int uid);
     ~PCH(void);
