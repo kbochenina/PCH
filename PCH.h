@@ -31,12 +31,16 @@ private:
     void SetESTs(taskInfo& tasks, const Workflow& wf, vector<unsigned>& cluster);
     // for PCH_MERGE - find workflow which cluster will be formed next, and first task of the cluster
     void FindCurrentWorkflow(unsigned &wfUID, unsigned& taskIndex);
+    // find first task for current workflow
+    void FindFirstTask(const unsigned &wfUID, unsigned& taskIndex);
     // find cluster
     void FindCluster(unsigned currentWf, unsigned firstTask, vector<unsigned>& cluster);
     // delete clusterized tasks from unscheduled
     void DeleteClusterTasksFromUnsched(unsigned currentWf, vector<unsigned>& cluster);
     // search for cluster's schedule
     void FindScheduleForCluster(Schedule& out, unsigned currentWf, vector<unsigned>& cluster);
+    // get the order of workflows in accordance with starting time
+    void SortTStart(vector<unsigned>& order);
 public:
     PCH(DataInfo &d, int uid);
     ~PCH(void);

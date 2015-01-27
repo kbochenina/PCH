@@ -78,6 +78,12 @@ int _tmain(int argc, wchar_t**argv)
 		    sched.GetMetrics("pch_merge.txt", "PCH_MERGE", metricsFileName);
 		    sched.TestSchedule();
 		    cout << "***************************************************" << endl;
+          //  PCH + round-robin
+          sched.SetSchedulingStrategy(PCH_R);
+		    sched.GetSchedule(PCH_RR);
+		    sched.GetMetrics("pch_rr.txt", "PCH_ROUND-ROBIN", metricsFileName);
+		    sched.TestSchedule();
+		    cout << "***************************************************" << endl;
 		    _chdir("D:\\ITMO\\Degree\\Programs\\Clustered\\Clustered");
       }
       

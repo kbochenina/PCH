@@ -40,25 +40,8 @@ Scheduler::~Scheduler(void)
 
 void Scheduler::SetSchedulingStrategy(int strategyNumber)
 {
-   switch (strategyNumber)
-   {
-      // only Bellman
-   case 1: for (unsigned int i = 0; i < methodsSet.size(); i++)
-            methodsSet[i] = 1;
-      break;
-      // only Greedy
-   case 2: for (unsigned int i = 0; i < methodsSet.size(); i++)
-            methodsSet[i] = 2;
-	   break;
-	   // clustered scheme
-   case 3: for (unsigned int i = 0; i < methodsSet.size(); i++)
-            methodsSet[i] = 3;
-      break;
-	   // PCH
-   case 4: for (unsigned int i = 0; i < methodsSet.size(); i++)
-            methodsSet[i] = 4;
-      break;
-   }
+    for (unsigned int i = 0; i < methodsSet.size(); i++)
+        methodsSet[i] = strategyNumber;
 }
 
 // implements staging scheme for finding the schedule for WFs set

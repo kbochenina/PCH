@@ -15,11 +15,11 @@ double PCH::GetWFSchedule(Schedule &out){
      if (uid == 5){
         // PCH_RR
         // get order in accordance with starting time
-        //SortTStart(order);
+        SortTStart(order);
     }
    
     // current workflow to be scheduled
-    unsigned currentWf = 0;
+    unsigned currentWf = 0, orderIndex = 0;
     InitUnscheduledTasks();
     while (unschedCount != 0){
         unsigned firstTask = 0;
@@ -30,7 +30,12 @@ double PCH::GetWFSchedule(Schedule &out){
         }
         // PCH_RR
         else {
-
+            currentWf = order[orderIndex];
+            FindFirstTask(currentWf, firstTask);
+            //cout << "Current workflow " << currentWf << ", first task = " << firstTask << endl;
+            orderIndex++;
+            if (orderIndex == order.size())
+                orderIndex = 0;
         }
         vector <unsigned> cluster;
         cluster.push_back(firstTask);
@@ -44,6 +49,23 @@ double PCH::GetWFSchedule(Schedule &out){
     }
 
     return 0.0;
+}
+
+// get the order of workflows in accordance with starting time
+void PCH::SortTStart(vector<unsigned>& order){
+    while (order.size() != data.GetWFCount()){
+        double minTStart = data.GetDeadline();
+        unsigned bestWfUid = 0;
+        for (auto& wf: data.Workflows()){
+            unsigned uid = wf.GetUID(); 
+            double startTime = wf.GetStartTime();
+            if (find(order.begin(), order.end(), uid) == order.end() && startTime < minTStart){
+                bestWfUid = uid;
+                minTStart = startTime;
+            }
+        }
+        order.push_back(bestWfUid);
+    }
 }
 
 void PCH::InitUnscheduledTasks(){
@@ -85,6 +107,18 @@ void PCH::FindCurrentWorkflow(unsigned &wfUID, unsigned& taskIndex){
         }
     }
     //cout << "((" << wfUID << ", " << taskIndex << "), " << highestPriority << endl;
+}
+
+// find first task for current workflow
+void PCH::FindFirstTask(const unsigned &wfUID, unsigned& taskIndex){
+    double highestPriority = 0.0;
+    for (auto& task : unsched[wfUID]){
+        double &priority = task.second.priority;
+            if (priority > highestPriority){
+                highestPriority = priority;
+                taskIndex = task.first;
+            }
+    }
 }
 
 // find cluster

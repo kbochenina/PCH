@@ -76,27 +76,25 @@ void Metrics::AvgUnfinischedTime(){
    //cout << "Unfinished times: " << endl;
     vector<double> unschTimes(data.GetWFCount(), 0);
 
-   for (size_t i = 0; i < unfinishedTimes.size(); i++){
-      // if we have some unscheduled tasks
-      if (scheduledTasks[i].size() != data.Workflows(i).GetPackageCount()){
-         if (find(violatedDeadlines.begin(),violatedDeadlines.end(),i)==violatedDeadlines.end())
-			 violatedDeadlines.push_back(i);
-         for (int j = 0; j < data.Workflows(i).GetPackageCount(); j++ ){
-            // if package was not scheduled
-            if (find(scheduledTasks[i].begin(), scheduledTasks[i].end(), j) == scheduledTasks[i].end()){
-			   int globalNum = data.GetInitPackageNumber(i)+j;
-			   unschTimes[i] += data.Workflows(i).GetAvgExecTime(j) + data.GetAvgTransferFrom(globalNum);
-               //unfinishedTimes[i] += unschTimes[i];
-			   unscheduledTasks[i]++;
-               reservedTime[i] = 0.0;
+    for (size_t i = 0; i < wfCount; i++){
+        // if we have some unscheduled tasks
+        if (scheduledTasks[i].size() != data.Workflows(i).GetPackageCount()){
+            violatedDeadlines.push_back(i);
+            for (int j = 0; j < data.Workflows(i).GetPackageCount(); j++){
+                // if package was not scheduled
+                if (find(scheduledTasks[i].begin(), scheduledTasks[i].end(), j) == scheduledTasks[i].end()){
+		              int globalNum = data.GetInitPackageNumber(i) + j;
+		              unschTimes[i] += data.Workflows(i).GetAvgExecTime(j) + data.GetAvgTransferFrom(globalNum);
+		              unscheduledTasks[i]++;
+                    reservedTime[i] = 0.0;
+                }
             }
-         }
-      }
-	  //summUnfinishedTime += unfinishedTimes[i];
-      /*cout << "Workflow # " << i+1 << " " << unfinishedTimes[i] << " " << "unfinished tasks: " << unfinishedTasks[i] 
-      << " unscheduled tasks: " << unscheduledTasks[i] 
-      << " scheduled tasks: " << scheduledTasks[i].size() << endl;*/
-   }
+        }
+	     //summUnfinishedTime += unfinishedTimes[i];
+        /*cout << "Workflow # " << i+1 << " " << unfinishedTimes[i] << " " << "unfinished tasks: " << unfinishedTasks[i] 
+        << " unscheduled tasks: " << unscheduledTasks[i] 
+        << " scheduled tasks: " << scheduledTasks[i].size() << endl;*/
+    }
    cout << "Workflows count: " << data.GetWFCount() << endl;
 
    for (int i = 0; i < data.GetWFCount(); i++){
@@ -124,7 +122,7 @@ void Metrics::AvgUnfinischedTime(){
 		  if (wfEnds[i] < deadline)
 			  fines[i] = unschTimes[i];
 		  else
-		  fines[i] = unschTimes[i] + unfinishedTimes[i];
+		      fines[i] = unschTimes[i] + unfinishedTimes[i];
 		  if (fines[i] < 0)
 			  cout << "tend " << wfEnds[i] << "unshTimes " << unschTimes[i] << "deadline " << deadline << endl;
 		  //cout << "Incomplete " << endl;
@@ -216,7 +214,7 @@ void Metrics::AvgUnfinischedTime(){
    fairness = 1 - fairness;
   // cout << "Avg diff " << sum << " MaxAvgDiff " << maxAvg << endl;
    cout << "Fairness: " << fairness << endl;
-
+   full << "Fairness: " << fairness << endl;
    out << "Average fine: " << avgFine << endl;
    cout << "Average fine: " << avgFine << endl;
    full << "Average fine: " << avgFine << endl;
