@@ -33,6 +33,10 @@ private:
     void FindCurrentWorkflow(unsigned &wfUID, unsigned& taskIndex);
     // find cluster
     void FindCluster(unsigned currentWf, unsigned firstTask, vector<unsigned>& cluster);
+    // delete clusterized tasks from unscheduled
+    void DeleteClusterTasksFromUnsched(unsigned currentWf, vector<unsigned>& cluster);
+    // search for cluster's schedule
+    void FindScheduleForCluster(Schedule& out, unsigned currentWf, vector<unsigned>& cluster);
 public:
     PCH(DataInfo &d, int uid);
     ~PCH(void);

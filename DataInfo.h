@@ -70,7 +70,9 @@ public:
 	const vector<Workflow> & Workflows() const { return workflows; }
 	const vector<ResourceType> & Resources() const { return resources; }
 	const Workflow& Workflows(int wfNum) const ;
-	ResourceType& Resources(int resNum)  ;
+	ResourceType& Resources(int resNum);
+   // get number of resources types
+   unsigned GetTypesCount() {return resources.size();}
 	double GetCCR() {return context.GetCCR();}
 	// get initial processor index of resource type
 	int GetInitResourceTypeIndex(int type);

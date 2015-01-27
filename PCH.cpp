@@ -34,6 +34,9 @@ double PCH::GetWFSchedule(Schedule &out){
         vector <unsigned> cluster;
         cluster.push_back(firstTask);
         FindCluster(currentWf, firstTask, cluster);
+        FindScheduleForCluster(out, currentWf, cluster);
+
+        DeleteClusterTasksFromUnsched(currentWf, cluster);
         unschedCount -= cluster.size();
     }
 
@@ -95,13 +98,13 @@ void PCH::FindCluster(unsigned currentWf, unsigned firstTask, vector<unsigned>& 
             wf.GetInput(child, parents);
             bool allParentsScheduled = true;
             for (auto& parent: parents){
-                if (tasks.count(parent) != 0){
+                if (tasks.count(parent) != 0 && find(cluster.begin(), cluster.end(), parent) == cluster.end()){
                     allParentsScheduled = false;
                     break;
                 }
             }
             if (allParentsScheduled){
-                isAnyChildWithAllParentsScheduled = false;
+                isAnyChildWithAllParentsScheduled = true;
                 double& priority = tasks[child].priority;
                 if (priority > highestPriority){
                     bestChildNum = child;
@@ -116,6 +119,114 @@ void PCH::FindCluster(unsigned currentWf, unsigned firstTask, vector<unsigned>& 
         currentTask = bestChildNum;
      } while (!wf.IsPackageLast(currentTask));
 
+}
+
+// delete clusterized tasks from unscheduled
+void PCH::DeleteClusterTasksFromUnsched(unsigned currentWf, vector<unsigned>& cluster){
+    taskInfo& tasks = unsched[data.Workflows(currentWf).GetUID()];
+    for (auto& task : cluster){
+        tasks.erase(task);
+    }
+}
+
+// search for cluster's schedule
+void PCH::FindScheduleForCluster(Schedule& out, unsigned currentWf, vector<unsigned>& cluster){
+    // data.Workflows() return workflow by index, not by its UID :-(
+    const Workflow& wf = data.Workflows(currentWf - 1);
+    double deadline = wf.GetDeadline();
+    // (resType, <vector of task schedules, EFT>)
+    map <unsigned, pair<vector<PackageSchedule>,double>> finishingTimes;
+    unsigned typesCount = data.GetTypesCount();
+    for (auto i = 0; i < typesCount; i++){
+        ResourceType& res = data.Resources(i);
+        double currentEFT = 0.0;
+        for (auto& task : cluster){
+            // types are numbered from 1 :-(
+            double execTime = wf.GetExecTime(task, i + 1, 1);
+            // find finishing time for resource (i,j)
+            int processor = -1, tbegin = 0;
+            // find time of possible start as time of parents' end + communication time
+            vector <int> parents;
+            wf.GetInput(task, parents);
+            for (auto& parent: parents){
+                // if parent is in this cluster
+                if (find(cluster.begin(), cluster.end(), parent) != cluster.end()){
+                    if (currentEFT > tbegin)
+                        tbegin = static_cast<int>(currentEFT) + 1;
+                }
+                // all parents should be in the schedule
+                else {
+                    for (auto& taskSched : out){
+                        int globalTaskNum = parent + data.GetInitPackageNumber(currentWf);
+                        if (taskSched.get_head() == globalTaskNum){
+                            double parentEnd = taskSched.get<1>() + taskSched.get<3>();
+                            int parentResource = taskSched.get<2>()[0];
+                            int parentResourceType = data.GetResourceType(parentResource);
+                            if ( i != parentResourceType){
+                                double transfer = wf.GetTransfer(parent, task);
+                                double bandwidth = data.GetBandwidth(parentResourceType, i);
+                                double commTime = transfer / bandwidth;
+                                parentEnd += commTime;
+                            }
+                            if (parentEnd > tbegin)
+                                tbegin = parentEnd;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            bool isScheduled = res.FindPlacement(execTime, tbegin, processor, deadline);
+            if (isScheduled){
+                double tend = tbegin + execTime;
+                currentEFT = tend > deadline ? deadline : tend;
+                vector <int> processors;
+                processors.push_back(data.GetGlobalProcessorIndex(i, processor));
+                // data.GetInitPackageNumber() return init task number by index of workflow, not by its UID :-(
+                int globalTaskNum = task + data.GetInitPackageNumber(currentWf - 1);
+                finishingTimes[i].first.push_back(make_tuple(globalTaskNum, tbegin, processors, execTime));
+                finishingTimes[i].second = currentEFT;
+                // if this task is finished after the deadline, the rest tasks shouldn't be scheduled
+                if (tend > deadline)
+                    break;
+            }
+            // if this task cannot be placed on resource of type i, following tasks shouldn't be scheduled on it too
+            else {
+                break;
+            }
+        }
+    }
+    // we choose for placement into schedule resource type:
+    // 1) with maximum overall tasks scheduled
+    // 2) with minimum EFT
+    unsigned maxSize = 0, bestResType = 0;
+    double minEFT = numeric_limits<double>::infinity();
+    for (auto& resType: finishingTimes){
+        size_t size = resType.second.first.size();
+        double eft = resType.second.second;
+        if (size > maxSize){
+            maxSize = size;
+            minEFT = eft;
+            bestResType = resType.first;
+        }
+        else if (size == maxSize){
+            if (eft < minEFT){
+                minEFT = eft;
+                bestResType = resType.first;
+            }
+        }
+    }
+    // place tasks' schedules into schedules
+    vector<PackageSchedule>& sched = finishingTimes[bestResType].first;
+    out.insert(out.end(), sched.begin(), sched.end());
+    // fix busy intervals
+    ResourceType& res = data.Resources(bestResType);
+    for (auto& taskSched : sched){
+        double execTime = taskSched.get<3>();
+        int localProcessorNum = taskSched.get<2>()[0] - data.GetInitResourceTypeIndex(bestResType);
+        res.AddInterval(execTime, taskSched.get<1>(), localProcessorNum);
+    }
+    res.FixBusyIntervals();
 }
 
 // setting the priorities for unscheduled tasks of current workflow
