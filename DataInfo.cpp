@@ -1128,6 +1128,20 @@ const Workflow& DataInfo::Workflows(int wfNum) const {
    }
 }
 
+// get init package number by wfNum
+int DataInfo::GetInitPackageNumber(int wfNum) {
+    try{
+      if ( wfNum < 0 || static_cast<unsigned>(wfNum) >= workflows.size() )
+         throw UserException("DataInfo::GetInitPackageNumber() error. Workflow index out of range");
+      return initPackageNumbers[wfNum];
+   }
+   catch (UserException& e){
+      cout<<"error : " << e.what() <<endl;
+      std::system("pause");
+      exit(EXIT_FAILURE);
+   }
+ }
+
 // PRE: resNum >=0 && resNum < resources.size()
 ResourceType& DataInfo::Resources(int resNum)  {
    try {

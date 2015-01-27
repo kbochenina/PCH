@@ -640,7 +640,7 @@ double Clustered::GetWFSchedule(Schedule &out){
 		res += GetClusterSchedule(out, realBegin, realEnd);
 
 
-	   cout << "Cluster " << bestCluster << " of " << bestWf << " was scheduled." << endl;  
+	   //cout << "Cluster " << bestCluster << " of " << bestWf << " was scheduled." << endl;  
 		/*cout << "Tstart: " << clusters[bestWf][bestCluster].GetStart() ;
 		cout << " Deadline: " << clusters[bestWf][bestCluster].GetDeadline() ;
 		cout << " Weight: " << clusters[bestWf][bestCluster].GetWeight() << endl;

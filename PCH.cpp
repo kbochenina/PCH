@@ -26,6 +26,7 @@ double PCH::GetWFSchedule(Schedule &out){
         // PCH_MERGE
         if (uid == 4){
             FindCurrentWorkflow(currentWf, firstTask);
+            //cout << "Current workflow " << currentWf << ", first task = " << firstTask << endl;
         }
         // PCH_RR
         else {
@@ -35,9 +36,11 @@ double PCH::GetWFSchedule(Schedule &out){
         cluster.push_back(firstTask);
         FindCluster(currentWf, firstTask, cluster);
         FindScheduleForCluster(out, currentWf, cluster);
-
+        // data.Workflows() return workflow by index, not by its UID :-(
+        SetESTs(unsched[currentWf], data.Workflows(currentWf - 1), cluster);
         DeleteClusterTasksFromUnsched(currentWf, cluster);
         unschedCount -= cluster.size();
+        //cout << "Unsched count = " << unschedCount << endl;
     }
 
     return 0.0;
@@ -59,7 +62,8 @@ void PCH::InitUnscheduledTasks(){
             tasks[i] = task;
         }
 		SetPriorities(tasks, wf);
-		SetESTs(tasks, wf);
+      vector<unsigned> cluster;
+		SetESTs(tasks, wf, cluster);
 		unsched[wf.GetUID()] = tasks;
       unschedCount += wf.GetPackageCount();
     }
@@ -67,6 +71,7 @@ void PCH::InitUnscheduledTasks(){
 
 // for PCH_MERGE - find workflow which cluster will be formed next, and first task of the cluster
 void PCH::FindCurrentWorkflow(unsigned &wfUID, unsigned& taskIndex){
+    //cout << "Start of cluster " << endl;
     double highestPriority = 0.0;
     // we should find an index of workflow having the task with highest priority
     for (auto& wf: unsched){
@@ -79,12 +84,14 @@ void PCH::FindCurrentWorkflow(unsigned &wfUID, unsigned& taskIndex){
             }
         }
     }
+    //cout << "((" << wfUID << ", " << taskIndex << "), " << highestPriority << endl;
 }
 
 // find cluster
 void PCH::FindCluster(unsigned currentWf, unsigned firstTask, vector<unsigned>& cluster){
     unsigned currentTask = firstTask;
-    const Workflow& wf = data.Workflows(currentWf);
+    // data.Workflows() return workflow by index, not by its UID :-(
+    const Workflow& wf = data.Workflows(currentWf - 1);
     taskInfo& tasks = unsched[wf.GetUID()];
     do {
         vector<int> children;
@@ -116,14 +123,15 @@ void PCH::FindCluster(unsigned currentWf, unsigned firstTask, vector<unsigned>& 
         if (!isAnyChildWithAllParentsScheduled)
             return;
         cluster.push_back(bestChildNum);
+        //cout << "((" << currentWf << ", " << bestChildNum << "), " << highestPriority << endl;
         currentTask = bestChildNum;
      } while (!wf.IsPackageLast(currentTask));
-
+     //cout << "End of cluster" << endl;
 }
 
 // delete clusterized tasks from unscheduled
 void PCH::DeleteClusterTasksFromUnsched(unsigned currentWf, vector<unsigned>& cluster){
-    taskInfo& tasks = unsched[data.Workflows(currentWf).GetUID()];
+    taskInfo& tasks = unsched[currentWf];
     for (auto& task : cluster){
         tasks.erase(task);
     }
@@ -148,17 +156,28 @@ void PCH::FindScheduleForCluster(Schedule& out, unsigned currentWf, vector<unsig
             // find time of possible start as time of parents' end + communication time
             vector <int> parents;
             wf.GetInput(task, parents);
+            // if task has no parents, its starting time is equal to starting time of the workflow
+            if (parents.size() == 0){
+                tbegin = wf.GetStartTime();
+            }
+
+            bool parentWasNotScheduled = false;
+
             for (auto& parent: parents){
                 // if parent is in this cluster
                 if (find(cluster.begin(), cluster.end(), parent) != cluster.end()){
                     if (currentEFT > tbegin)
                         tbegin = static_cast<int>(currentEFT) + 1;
                 }
-                // all parents should be in the schedule
+                // trying to find parent in schedule. If parent is neither in cluster nor in schedule, it means that it could not be placed into resources
+                // Thereafter, current task and all next tasks of the cluster cannot be scheduled
                 else {
+                    bool parentWasFound = false;
                     for (auto& taskSched : out){
-                        int globalTaskNum = parent + data.GetInitPackageNumber(currentWf);
+                        // data.GetInitPackageNumber() return init task number by index of workflow, not by its UID :-(
+                        int globalTaskNum = parent + data.GetInitPackageNumber(currentWf - 1);
                         if (taskSched.get_head() == globalTaskNum){
+                            parentWasFound = true;
                             double parentEnd = taskSched.get<1>() + taskSched.get<3>();
                             int parentResource = taskSched.get<2>()[0];
                             int parentResourceType = data.GetResourceType(parentResource);
@@ -169,12 +188,19 @@ void PCH::FindScheduleForCluster(Schedule& out, unsigned currentWf, vector<unsig
                                 parentEnd += commTime;
                             }
                             if (parentEnd > tbegin)
-                                tbegin = parentEnd;
+                                tbegin = static_cast<int>(parentEnd) + 1;
                             break;
                         }
                     }
-                }
+                    if (!parentWasFound){
+                        parentWasNotScheduled = true;
+                        break;
+                    }
+               }
             }
+
+            if (parentWasNotScheduled)
+                break;
 
             bool isScheduled = res.FindPlacement(execTime, tbegin, processor, deadline);
             if (isScheduled){
@@ -225,8 +251,23 @@ void PCH::FindScheduleForCluster(Schedule& out, unsigned currentWf, vector<unsig
         double execTime = taskSched.get<3>();
         int localProcessorNum = taskSched.get<2>()[0] - data.GetInitResourceTypeIndex(bestResType);
         res.AddInterval(execTime, taskSched.get<1>(), localProcessorNum);
+        // update weights, communication costs between tasks in the cluster, and EST
+        // data.GetInitPackageNumber() return init task number by index of workflow, not by its UID :-(
+        unsigned localTaskNum = taskSched.get_head() - data.GetInitPackageNumber(currentWf - 1);
+        unsched[currentWf][localTaskNum].weight = execTime;
+        unsched[currentWf][localTaskNum].est = taskSched.get<1>();
+        vector<int> children;
+        wf.GetOutput(localTaskNum, children);
+        // if child is in the same cluster, communication cost is equal to zero
+        for (auto& child : children){
+            if (find(cluster.begin(), cluster.end(), child) != cluster.end()){
+                unsched[currentWf][localTaskNum].commCost[child] = 0.0;
+            }
+        }
     }
     res.FixBusyIntervals();
+
+
 }
 
 // setting the priorities for unscheduled tasks of current workflow
@@ -268,20 +309,38 @@ void PCH::SetPriorities(taskInfo& tasks, const Workflow& wf){
 	}
 }
 
-// setting the ESTs for unscheduled tasks of current workflow
-void PCH::SetESTs(taskInfo& tasks, const Workflow& wf){
+    // setting the ESTs for unscheduled tasks of current workflow. If cluster.size() == 0, SetESTs is calling for first time
+void PCH::SetESTs(taskInfo& tasks, const Workflow& wf, vector<unsigned>& cluster){
 	// set ESTs
 	vector<int> ESTqueue;
 
-	// find init tasks
-	for (size_t i = 0; i < wf.GetPackageCount(); i++){
-		if (wf.IsPackageInit(i)){
-			tasks[i].est = 0.0;
-			vector <int> children;
-			wf.GetOutput(i,children);
-			ESTqueue.insert(ESTqueue.begin(), children.begin(), children.end());
-		}
-	}
+    if (cluster.size() == 0){
+	     // find init tasks
+	     for (size_t i = 0; i < wf.GetPackageCount(); i++){
+		      if (wf.IsPackageInit(i)){
+			       tasks[i].est = 0.0;
+			       vector <int> children;
+			       wf.GetOutput(i,children);
+			       for (auto& candidate: children){
+                    if (find(ESTqueue.begin(), ESTqueue.end(), candidate) == ESTqueue.end()){
+                        ESTqueue.push_back(candidate);
+                    }
+                }
+		      }
+	     }
+    }
+    else {
+        // EST queue should contain all successors of clusters' tasks (check for duplicates)
+        for (auto& task: cluster){
+            vector<int> children;
+	         wf.GetOutput(task, children);
+            for (auto& candidate: children){
+                if (find(ESTqueue.begin(), ESTqueue.end(), candidate) == ESTqueue.end()){
+                    ESTqueue.push_back(candidate);
+                }
+            }
+        }
+    }
 
 	while (ESTqueue.size() != 0)
 	{
@@ -305,8 +364,13 @@ void PCH::SetESTs(taskInfo& tasks, const Workflow& wf){
 			wf.GetOutput(task, children);
 			candidates.insert(candidates.end(), children.begin(), children.end());
 		}
-		ESTqueue.insert(ESTqueue.end(), candidates.begin(), candidates.end());
-	}
+      // with check for duplicates
+      for (auto& candidate: candidates){
+          if (find(ESTqueue.begin(), ESTqueue.end(), candidate) == ESTqueue.end()){
+              ESTqueue.push_back(candidate);
+          }
+      }
+ 	}
 }
 PCH::~PCH(void)
 {

@@ -27,8 +27,8 @@ private:
     void InitUnscheduledTasks();
     // setting the priorities for unscheduled tasks of current workflow
     void SetPriorities(taskInfo& tasks, const Workflow& wf); 
-    // setting the ESTs for unscheduled tasks of current workflow
-    void SetESTs(taskInfo& tasks, const Workflow& wf);
+    // setting the ESTs for unscheduled tasks of current workflow. If cluster.size() == 0, SetESTs is calling for first time
+    void SetESTs(taskInfo& tasks, const Workflow& wf, vector<unsigned>& cluster);
     // for PCH_MERGE - find workflow which cluster will be formed next, and first task of the cluster
     void FindCurrentWorkflow(unsigned &wfUID, unsigned& taskIndex);
     // find cluster

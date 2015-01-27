@@ -54,25 +54,25 @@ int _tmain(int argc, wchar_t**argv)
 		    Scheduler sched(data);
 		    ofstream f("fullmetrics.txt", ios::trunc);
 		    f.close();
-		    //sched.SetSchedulingStrategy(ONLY_GREEDY);	
-		    //sched.GetSchedule(SIMPLE);
-		    //sched.GetMetrics("simple_metrics.txt", "SimpleSched",metricsFileName);
-		    //sched.TestSchedule();
-		    //cout << "***************************************************" << endl;
-		    //sched.GetSchedule(RESERVED_ORDERED);
-		    //sched.GetMetrics("reserved_metrics.txt", "StagedReservedTime",metricsFileName);
-		    //sched.TestSchedule();
-		    //cout << "***************************************************" << endl;
-		    ///*sched.GetSchedule(EFF_ORDERED);
-		    //sched.GetMetrics("eff_metrics.txt", "StagedEfficiency");
-		    //sched.TestSchedule();
-		    //cout << "***************************************************" << endl;*/
-		    //sched.SetSchedulingStrategy(CLUST);
-		    //sched.GetSchedule(CLUSTERED);
-		    //sched.GetMetrics("clustered.txt", "Clustered", metricsFileName);
-		    //sched.TestSchedule();
-		    //cout << "***************************************************" << endl;
-           // PCH + merge-based
+		    sched.SetSchedulingStrategy(ONLY_GREEDY);	
+		    sched.GetSchedule(SIMPLE);
+		    sched.GetMetrics("simple_metrics.txt", "SimpleSched",metricsFileName);
+		    sched.TestSchedule();
+		    cout << "***************************************************" << endl;
+		    sched.GetSchedule(RESERVED_ORDERED);
+		    sched.GetMetrics("reserved_metrics.txt", "StagedReservedTime",metricsFileName);
+		    sched.TestSchedule();
+		    cout << "***************************************************" << endl;
+		    /*sched.GetSchedule(EFF_ORDERED);
+		    sched.GetMetrics("eff_metrics.txt", "StagedEfficiency");
+		    sched.TestSchedule();
+		    cout << "***************************************************" << endl;*/
+		    sched.SetSchedulingStrategy(CLUST);
+		    sched.GetSchedule(CLUSTERED);
+		    sched.GetMetrics("clustered.txt", "Clustered", metricsFileName);
+		    sched.TestSchedule();
+		    cout << "***************************************************" << endl;
+          //  PCH + merge-based
           sched.SetSchedulingStrategy(PCH_M);
 		    sched.GetSchedule(PCH_MERGE);
 		    sched.GetMetrics("pch_merge.txt", "PCH_MERGE", metricsFileName);

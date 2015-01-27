@@ -98,7 +98,7 @@ bool Test::TestWFLinks(){
                }
 					if (parentSched.get<1>() + parentSched.get<3>() + transferTime > packageSched.get<1>()){
 						cout << "Test Test::TestWFLinks() is not passed. Global package number = " <<
-						packageSched.get_head() << ", wfNum = " << wfNum  << "localNum = " << localPackageNum << 
+						packageSched.get_head() << ", wfNum = " << wfNum  << ", localNum = " << localPackageNum << 
 						", intersects with parent " << parent << "(global num)" << endl;
 						return false;
 					}

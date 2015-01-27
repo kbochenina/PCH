@@ -93,7 +93,7 @@ public:
 	// set different wf priorities
 	void SetWfPriorities();
 	// get init package number by wfNum
-	int GetInitPackageNumber(int wfNum) {return initPackageNumbers[wfNum];}
+	int GetInitPackageNumber(int wfNum);
 	// remove some numbers from priorities
 	void RemoveFromPriorities(const vector<int>& toRemove);
 	const double GetDeadline(int wfNum);
