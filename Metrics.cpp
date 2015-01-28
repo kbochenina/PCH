@@ -79,16 +79,17 @@ void Metrics::AvgUnfinischedTime(){
     for (size_t i = 0; i < wfCount; i++){
         // if we have some unscheduled tasks
         if (scheduledTasks[i].size() != data.Workflows(i).GetPackageCount()){
-            violatedDeadlines.push_back(i);
-            for (int j = 0; j < data.Workflows(i).GetPackageCount(); j++){
-                // if package was not scheduled
-                if (find(scheduledTasks[i].begin(), scheduledTasks[i].end(), j) == scheduledTasks[i].end()){
-		              int globalNum = data.GetInitPackageNumber(i) + j;
-		              unschTimes[i] += data.Workflows(i).GetAvgExecTime(j) + data.GetAvgTransferFrom(globalNum);
-		              unscheduledTasks[i]++;
-                    reservedTime[i] = 0.0;
+            if (find(violatedDeadlines.begin(),violatedDeadlines.end(),i)==violatedDeadlines.end())
+                violatedDeadlines.push_back(i);
+                for (int j = 0; j < data.Workflows(i).GetPackageCount(); j++){
+                    // if package was not scheduled
+                    if (find(scheduledTasks[i].begin(), scheduledTasks[i].end(), j) == scheduledTasks[i].end()){
+		                  int globalNum = data.GetInitPackageNumber(i) + j;
+		                  unschTimes[i] += data.Workflows(i).GetAvgExecTime(j) + data.GetAvgTransferFrom(globalNum);
+		                  unscheduledTasks[i]++;
+                        reservedTime[i] = 0.0;
+                    }
                 }
-            }
         }
 	     //summUnfinishedTime += unfinishedTimes[i];
         /*cout << "Workflow # " << i+1 << " " << unfinishedTimes[i] << " " << "unfinished tasks: " << unfinishedTasks[i] 
