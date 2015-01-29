@@ -96,7 +96,7 @@ void PCH::InitUnscheduledTasks(){
 
 // for PCH_MERGE - find workflow which cluster will be formed next, and first task of the cluster
 void PCH::FindCurrentWorkflow(unsigned &wfUID, unsigned& taskIndex){
-    cout << "Start of cluster " << endl;
+    //cout << "Start of cluster " << endl;
     double highestPriority = 0.0;
     // we should find an index of workflow having the task with highest priority
     for (auto& wf: unsched){
@@ -109,7 +109,7 @@ void PCH::FindCurrentWorkflow(unsigned &wfUID, unsigned& taskIndex){
             }
         }
     }
-    cout << "((" << wfUID << ", " << taskIndex << "), " << highestPriority << endl;
+    //cout << "((" << wfUID << ", " << taskIndex << "), " << highestPriority << endl;
 }
 
 // find first task for current workflow
