@@ -23,6 +23,8 @@ private:
     map <unsigned int, taskInfo> unsched;
     // current number of unconsidered tasks (for all workflows)
     unsigned unschedCount;
+    // reference to schedule
+    Schedule out;
     // add all tasks from all workflows to unscheduled
     void InitUnscheduledTasks();
     // setting the priorities for unscheduled tasks of current workflow
@@ -38,7 +40,7 @@ private:
     // delete clusterized tasks from unscheduled
     void DeleteClusterTasksFromUnsched(unsigned currentWf, vector<unsigned>& cluster);
     // search for cluster's schedule
-    void FindScheduleForCluster(Schedule& out, unsigned currentWf, vector<unsigned>& cluster);
+    void FindScheduleForCluster(unsigned currentWf, vector<unsigned>& cluster);
     // get the order of workflows in accordance with starting time
     void SortTStart(vector<unsigned>& order);
 public:

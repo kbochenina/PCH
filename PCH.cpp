@@ -9,7 +9,7 @@ PCH::PCH(DataInfo &d, int uid) : SchedulingMethod(d,uid)
 }
 
 // workflows are numbered from 0
-double PCH::GetWFSchedule(Schedule &out){
+double PCH::GetWFSchedule(Schedule &finalSchedule){
     // order of workflows in round-robin
     vector <unsigned int> order;
      if (uid == 5){
@@ -30,24 +30,27 @@ double PCH::GetWFSchedule(Schedule &out){
         }
         // PCH_RR
         else {
-            currentWf = order[orderIndex];
+            do {
+                currentWf = order[orderIndex++];
+                if (orderIndex == order.size())
+                    orderIndex = 0;
+            } while (unsched[currentWf].size() == 0);
             FindFirstTask(currentWf, firstTask);
             //cout << "Current workflow " << currentWf << ", first task = " << firstTask << endl;
-            orderIndex++;
-            if (orderIndex == order.size())
-                orderIndex = 0;
         }
         vector <unsigned> cluster;
         cluster.push_back(firstTask);
         FindCluster(currentWf, firstTask, cluster);
-        FindScheduleForCluster(out, currentWf, cluster);
+        FindScheduleForCluster(currentWf, cluster);
         // data.Workflows() return workflow by index, not by its UID :-(
         SetESTs(unsched[currentWf], data.Workflows(currentWf - 1), cluster);
         DeleteClusterTasksFromUnsched(currentWf, cluster);
         unschedCount -= cluster.size();
-        //cout << "Unsched count = " << unschedCount << endl;
     }
-
+    
+    for (auto& taskSched : out){
+        finalSchedule.push_back(taskSched);
+    }
     return 0.0;
 }
 
@@ -93,7 +96,7 @@ void PCH::InitUnscheduledTasks(){
 
 // for PCH_MERGE - find workflow which cluster will be formed next, and first task of the cluster
 void PCH::FindCurrentWorkflow(unsigned &wfUID, unsigned& taskIndex){
-    //cout << "Start of cluster " << endl;
+    cout << "Start of cluster " << endl;
     double highestPriority = 0.0;
     // we should find an index of workflow having the task with highest priority
     for (auto& wf: unsched){
@@ -106,11 +109,12 @@ void PCH::FindCurrentWorkflow(unsigned &wfUID, unsigned& taskIndex){
             }
         }
     }
-    //cout << "((" << wfUID << ", " << taskIndex << "), " << highestPriority << endl;
+    cout << "((" << wfUID << ", " << taskIndex << "), " << highestPriority << endl;
 }
 
 // find first task for current workflow
 void PCH::FindFirstTask(const unsigned &wfUID, unsigned& taskIndex){
+    // cout << "Start of cluster " << endl;
     double highestPriority = 0.0;
     for (auto& task : unsched[wfUID]){
         double &priority = task.second.priority;
@@ -119,6 +123,7 @@ void PCH::FindFirstTask(const unsigned &wfUID, unsigned& taskIndex){
                 taskIndex = task.first;
             }
     }
+    //cout << "((" << wfUID << ", " << taskIndex << "), " << highestPriority << endl;
 }
 
 // find cluster
@@ -154,25 +159,33 @@ void PCH::FindCluster(unsigned currentWf, unsigned firstTask, vector<unsigned>& 
             }
         }
         // if all children have unscheduled parents, it is the end of the current cluster
-        if (!isAnyChildWithAllParentsScheduled)
+        if (!isAnyChildWithAllParentsScheduled){
+            //cout << "End of cluster" << endl;
             return;
+        }
         cluster.push_back(bestChildNum);
         //cout << "((" << currentWf << ", " << bestChildNum << "), " << highestPriority << endl;
         currentTask = bestChildNum;
      } while (!wf.IsPackageLast(currentTask));
-     //cout << "End of cluster" << endl;
-}
+        // cout << "End of cluster" << endl;
+  }
 
 // delete clusterized tasks from unscheduled
 void PCH::DeleteClusterTasksFromUnsched(unsigned currentWf, vector<unsigned>& cluster){
     taskInfo& tasks = unsched[currentWf];
     for (auto& task : cluster){
+        auto it = tasks.find(task);
+        if (it == tasks.end()){
+            cout << "DeleteClusterTasksFromUnsched() error. Task " << task << " was not found in unscheduled tasks of workflow " << currentWf << endl;
+            system("pause");
+            exit(10);
+        }
         tasks.erase(task);
     }
 }
 
 // search for cluster's schedule
-void PCH::FindScheduleForCluster(Schedule& out, unsigned currentWf, vector<unsigned>& cluster){
+void PCH::FindScheduleForCluster(unsigned currentWf, vector<unsigned>& cluster){
     // data.Workflows() return workflow by index, not by its UID :-(
     const Workflow& wf = data.Workflows(currentWf - 1);
     double deadline = wf.GetDeadline();
@@ -388,7 +401,19 @@ void PCH::SetESTs(taskInfo& tasks, const Workflow& wf, vector<unsigned>& cluster
 			wf.GetInput(task, parents);
 
 			for (auto& parent : parents)	{
-				double weightCommEST = tasks[parent].weight + tasks[parent].commCost[task] + tasks[parent].est;
+            double weightCommEST = 0.0;
+            if (tasks.find(parent) == tasks.end()){
+                //cout << "Parent was not found in tasks " << endl;
+                unsigned globalParentNum = data.GetInitPackageNumber(wf.GetUID()-1) + parent;
+                for (auto& taskSchedule : out){
+                    if (taskSchedule.get_head() == globalParentNum){
+                        double commCost = wf.GetTransfer(parent, task) / data.GetMaxBandwidth();
+                        weightCommEST = taskSchedule.get<1>() + taskSchedule.get<3>() + commCost;
+                    }
+                }
+            }
+				else 
+                weightCommEST = tasks[parent].weight + tasks[parent].commCost[task] + tasks[parent].est;
 				if (weightCommEST > max){
 					max = weightCommEST;
 				}

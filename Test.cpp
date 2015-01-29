@@ -97,9 +97,14 @@ bool Test::TestWFLinks(){
                    transferTime = transfer / data.GetBandwidth(parentResType, packageResType);
                }
 					if (parentSched.get<1>() + parentSched.get<3>() + transferTime > packageSched.get<1>()){
+                  int localParentNum;
+                  data.GetLocalNumbers(parent, wfNum, localParentNum);
 						cout << "Test Test::TestWFLinks() is not passed. Global package number = " <<
 						packageSched.get_head() << ", wfNum = " << wfNum  << ", localNum = " << localPackageNum << 
-						", intersects with parent " << parent << "(global num)" << endl;
+						", intersects with parent " << parent << "(wf " << wfNum << ", localNum " << localParentNum << ")" << endl;
+                  cout << "Parent begins at " << parentSched.get<1>() << " with execTime " << parentSched.get<3>() << 
+                      " and transfer time " << transferTime << endl;
+                  cout << "Child begins at " << packageSched.get<1>() << endl;
 						return false;
 					}
 				}
